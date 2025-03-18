@@ -1,8 +1,9 @@
-import { MerkleTree, Stamper } from '@ethersphere/bee-js'
+import { MerkleTree } from 'cafe-utility'
 import { createServer } from 'http'
+import { Stamper } from './stamper'
 
 const stamper = Stamper.fromBlank(
-    '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+    0x0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdefn,
     new Uint8Array(32),
     30
 )
