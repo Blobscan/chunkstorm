@@ -1,7 +1,8 @@
+import { BatchId, PrivateKey } from '@ethersphere/bee-js'
 import { Binary, Chunk, Elliptic } from 'cafe-utility'
 
 export class Stamper {
-    signer: bigint
+    signer: PrivateKey
     batchId: Uint8Array
     buckets: Uint32Array
     depth: number
@@ -9,7 +10,7 @@ export class Stamper {
     address: Uint8Array
 
     private constructor(signer: bigint, batchId: Uint8Array, buckets: Uint32Array, depth: number) {
-        this.signer = signer
+        this.signer = new PrivateKey(Binary.numberToUint256(signer, 'BE'))
         this.batchId = batchId
         this.buckets = buckets
         this.depth = depth
@@ -33,13 +34,13 @@ export class Stamper {
         this.buckets[bucket]++
         const index = Binary.concatBytes(Binary.numberToUint32(bucket, 'BE'), Binary.numberToUint32(height, 'BE'))
         const timestamp = Binary.numberToUint64(BigInt(Date.now()), 'BE')
-        const signature = Elliptic.signMessage(Binary.concatBytes(address, this.batchId, index, timestamp), this.signer)
-
+        const message = Binary.concatBytes(address, this.batchId, index, timestamp)
+        const signature = this.signer.sign(message)
         return {
-            batchId: this.batchId,
+            batchId: new BatchId(this.batchId),
             index,
             issuer: this.address,
-            signature,
+            signature: signature.toUint8Array(),
             timestamp
         }
     }

@@ -10,9 +10,12 @@
     "license": "ISC",
     "description": "",
     "dependencies": {
-        "cafe-utility": "^27.14.2"
+        "@ethersphere/bee-js": "^9.1.1",
+        "cafe-utility": "^27.18.0",
+        "keccak": "^3.0.4"
     },
     "devDependencies": {
+        "@types/keccak": "^3.0.5",
         "@types/node": "^22.13.10",
         "typescript": "^5.8.2"
     }
