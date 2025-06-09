@@ -11,13 +11,13 @@ Chunk.hashFunction = (data: Uint8Array): Uint8Array => {
 }
 
 (async () => {
-    const { target, batchId: batchIdString, depth, port, privateKey } = await getConfig();
+    const { target, batchId: batchIdString, port, privateKey } = await getConfig();
     const bee = new Bee(target);
     const path = `${batchIdString}.bin`;
     const batchId = Binary.hexToUint8Array(batchIdString)
     const stamper = existsSync(path)
-        ? Stamper.fromState(privateKey, batchId, new Uint32Array(readFileSync(path)), depth)
-        : Stamper.fromBlank(privateKey, batchId, depth);
+        ? Stamper.fromState(privateKey, batchId, new Uint32Array(readFileSync(path)))
+        : Stamper.fromBlank(privateKey, batchId);
     let stampings = 0;
 
     const server: Server = createServer((request, response) => {

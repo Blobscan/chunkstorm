@@ -5,26 +5,22 @@ export class Stamper {
     signer: PrivateKey
     batchId: Uint8Array
     buckets: Uint32Array
-    depth: number
-    maxSlot: number
     address: Uint8Array
 
-    private constructor(signer: bigint, batchId: Uint8Array, buckets: Uint32Array, depth: number) {
+    private constructor(signer: bigint, batchId: Uint8Array, buckets: Uint32Array) {
         this.signer = new PrivateKey(Binary.numberToUint256(signer, 'BE'))
         this.batchId = batchId
         this.buckets = buckets
-        this.depth = depth
-        this.maxSlot = 2 ** (this.depth - 16)
         const publicKey = Elliptic.privateKeyToPublicKey(signer)
         this.address = Elliptic.publicKeyToAddress(publicKey)
     }
 
-    static fromBlank(signer: bigint, batchId: Uint8Array, depth: number) {
-        return new Stamper(signer, batchId, new Uint32Array(65536), depth)
+    static fromBlank(signer: bigint, batchId: Uint8Array) {
+        return new Stamper(signer, batchId, new Uint32Array(65536))
     }
 
-    static fromState(signer: bigint, batchId: Uint8Array, buckets: Uint32Array, depth: number) {
-        return new Stamper(signer, batchId, buckets, depth)
+    static fromState(signer: bigint, batchId: Uint8Array, buckets: Uint32Array) {
+        return new Stamper(signer, batchId, buckets)
     }
 
     stamp(chunk: Chunk) {

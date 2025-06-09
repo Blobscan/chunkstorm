@@ -7,7 +7,6 @@ dotenv.config();
 export interface AppConfig {
   target: string;
   port: number;
-  depth: number;
   batchId: string;
   privateKey: bigint;
 }
@@ -45,7 +44,6 @@ export async function getConfig(): Promise<AppConfig> {
   const config: AppConfig = {
     target: process.env.TARGET || 'http://localhost:1633',
     port: Number(process.env.PORT) || 3000,
-    depth: Number(process.env.DEPTH) || 17,
     batchId: process.env.BATCH_ID,
     privateKey
   };
