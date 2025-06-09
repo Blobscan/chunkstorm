@@ -16,23 +16,16 @@ export async function getConfig(): Promise<AppConfig> {
     throw new Error('Missing required environment variable: BATCH_ID');
   }
   
-  const useKeystore = process.env.USE_KEYSTORE === 'true';
   const keystorePath = process.env.KEYSTORE_PATH;
   const keystorePassword = process.env.KEYSTORE_PASSWORD;
   const privateKeyString = process.env.PRIVATE_KEY;
-  
-  if (useKeystore) {
-    if (!keystorePath || !keystorePassword) {
-      throw new Error('USE_KEYSTORE is true, but KEYSTORE_PATH or KEYSTORE_PASSWORD is missing');
-    }
-  } else {
-    if (!privateKeyString) {
-      throw new Error('PRIVATE_KEY must be provided if USE_KEYSTORE is not true');
-    }
+
+  if (!(keystorePath && keystorePassword) && !privateKeyString) {
+    throw new Error('Either KEYSTORE_PATH and KEYSTORE_PASSWORD or PRIVATE_KEY must be provided');
   }
   
   let privateKey: bigint;
-  if (useKeystore) {
+  if (keystorePath && keystorePassword) {
     const web3 = new Web3();
     const keystore = JSON.parse(readFileSync(keystorePath!, 'utf-8'));
     const account = await web3.eth.accounts.decrypt(keystore, keystorePassword!);
