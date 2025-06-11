@@ -20,9 +20,9 @@ Chunk.hashFunction = (data: Uint8Array): Uint8Array => {
 }
 
 (async () => {
-    const { target, batchId: batchIdString, port, privateKey } = await getConfig();
-    log({ target, port, batchId: batchIdString }, 'Configuration');
-    const bee = new Bee(target);
+    const { beeEndpoint, batchId: batchIdString, port, privateKey } = await getConfig();
+    log({ beeEndpoint, port, batchId: batchIdString }, 'Configuration');
+    const bee = new Bee(beeEndpoint);
     const path = `${batchIdString}.bin`;
     const batchId = Binary.hexToUint8Array(batchIdString)
     const stamper = existsSync(path)
@@ -33,20 +33,20 @@ Chunk.hashFunction = (data: Uint8Array): Uint8Array => {
     const server: Server = createServer((request, response) => {
         const requestStart = Date.now()
         const chunks: Buffer[] = []
-        
+
         log({
             method: request.method,
             url: request.url,
         }, 'Incoming request');
-        
+
         request.on('data', chunk => chunks.push(chunk))
-        
+
         request.on('end', async () => {
             try {
                 const errors: any[] = [];
                 const queue = new AsyncQueue(64, 64)
                 const data = Buffer.concat(chunks)
-                
+
                 const tree = new MerkleTree(async chunk => {
                     await queue.enqueue(async () => {
                         try {
@@ -58,11 +58,11 @@ Chunk.hashFunction = (data: Uint8Array): Uint8Array => {
                         }
                     })
                 })
-                
+
                 await tree.append(data)
                 const reference = await tree.finalize()
                 await queue.drain();
-                
+
                 if (errors.length > 0) {
                     throw errors[0];
                 }
@@ -73,16 +73,16 @@ Chunk.hashFunction = (data: Uint8Array): Uint8Array => {
 
                 response.writeHead(200, { 'Content-Type': 'application/json' });
                 response.end(JSON.stringify({
-                    reference: formattedReference,   
+                    reference: formattedReference,
                 }));
-                
+
                 const processingTimeMs = Date.now() - requestStart
                 log({
                     processingTimeMs,
                     stampings,
                     reference: formattedReference,
                 }, 'Request completed successfully');
-                
+
                 writeFileSync(path, stamper.getState())
             } catch (err: unknown) {
                 const processingTimeMs = Date.now() - requestStart;
@@ -95,7 +95,7 @@ Chunk.hashFunction = (data: Uint8Array): Uint8Array => {
                 response.end(JSON.stringify({ error: 'Internal server error' }));
             }
         })
-        
+
         request.on('error', (err: Error) => {
             error({
                 err,
@@ -105,15 +105,15 @@ Chunk.hashFunction = (data: Uint8Array): Uint8Array => {
             response.end(JSON.stringify({ error: 'Bad request' }));
         })
     })
-    
+
     server.listen(port, () => {
         log({
             port,
-            target,
-            startupTime: new Date(Date.now()).toISOString()  
+            beeEndpoint,
+            startupTime: new Date(Date.now()).toISOString()
         }, 'Server started successfully')
     })
-    
+
     server.on('error', (err: Error) => {
         error({ err }, 'Server error');
     })

@@ -5,7 +5,7 @@ import Web3 from 'web3';
 dotenv.config();
 
 export interface AppConfig {
-  target: string;
+  beeEndpoint: string;
   port: number;
   batchId: string;
   privateKey: bigint;
@@ -39,7 +39,7 @@ export async function getConfig(): Promise<AppConfig> {
   const privateKey = await getPrivateKey();
 
   const config: AppConfig = {
-    target: process.env.TARGET || 'http://localhost:1633',
+    beeEndpoint: process.env.BEE_ENDPOINT || 'http://localhost:1633',
     port: Number(process.env.PORT) || 3050,
     batchId: process.env.BATCH_ID,
     privateKey
