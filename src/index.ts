@@ -5,7 +5,30 @@ import { createServer, Server } from 'http'
 import createKeccakHash from 'keccak'
 import { Stamper } from './stamper'
 import { getConfig } from './config'
-import logger from './logger'
+import { log, error } from './logger'
+
+function formatError(err: unknown): string {
+    if (err instanceof Error) {
+        return err.stack || err.message;
+    }
+    if (typeof err === 'object') {
+        try {
+            return JSON.stringify(err);
+        } catch {
+            return String(err);
+        }
+    }
+    return String(err);
+}
+
+
+process.on('uncaughtException', (err: unknown) => {
+    error({ err: formatError(err) }, 'Uncaught Exception');
+});
+
+process.on('unhandledRejection', (reason: unknown) => {
+    error({ err: formatError(reason) }, 'Unhandled Rejection');
+});
 
 Chunk.hashFunction = (data: Uint8Array): Uint8Array => {
     return createKeccakHash('keccak256').update(Buffer.from(data)).digest()
@@ -13,7 +36,7 @@ Chunk.hashFunction = (data: Uint8Array): Uint8Array => {
 
 (async () => {
     const { target, batchId: batchIdString, port, privateKey } = await getConfig();
-    logger.info({ target, port, batchId: batchIdString }, 'Starting app with configuration');
+    log({ target, port, batchId: batchIdString }, 'Configuration');
     const bee = new Bee(target);
     const path = `${batchIdString}.bin`;
     const batchId = Binary.hexToUint8Array(batchIdString)
@@ -26,7 +49,7 @@ Chunk.hashFunction = (data: Uint8Array): Uint8Array => {
         const requestStart = Date.now()
         const chunks: Buffer[] = []
         
-        logger.info({
+        log({
             method: request.method,
             url: request.url,
         }, 'Incoming request');
@@ -35,28 +58,29 @@ Chunk.hashFunction = (data: Uint8Array): Uint8Array => {
         
         request.on('end', async () => {
             try {
+                const errors: any[] = [];
                 const queue = new AsyncQueue(64, 64)
                 const data = Buffer.concat(chunks)
-                let chunkCount = 0
                 
                 const tree = new MerkleTree(async chunk => {
                     await queue.enqueue(async () => {
-                        const startStamp = Date.now()
-                        const envelope = stamper.stamp(chunk)
-                        await bee.uploadChunk(envelope, chunk.build())
-                        chunkCount++
-                        stampings++
-                        
-                        logger.debug({
-                            chunkIndex: chunkCount,
-                            stampTime: Date.now() - startStamp
-                        }, 'Chunk stamped and uploaded')
+                        try {
+                            const envelope = stamper.stamp(chunk);
+                            await bee.uploadChunk(envelope, chunk.build());
+                            stampings++;
+                        } catch (err) {
+                            errors.push(err);
+                        }
                     })
                 })
                 
                 await tree.append(data)
                 const reference = await tree.finalize()
-                await queue.drain()
+                await queue.drain();
+                
+                if (errors.length > 0) {
+                    throw errors[0];
+                }
 
                 const formattedReference = Array.from(reference.hash())
                     .map(byte => byte.toString(16).padStart(2, '0'))
@@ -68,19 +92,18 @@ Chunk.hashFunction = (data: Uint8Array): Uint8Array => {
                 }));
                 
                 const processingTimeMs = Date.now() - requestStart
-                logger.info({
+                log({
                     processingTimeMs,
                     stampings,
-                    chunksProcessed: chunkCount,
                     reference: formattedReference,
                 }, 'Request completed successfully');
                 
                 writeFileSync(path, stamper.getState())
-            } catch (error) {
-                const processingTimeMs = Date.now() - requestStart
-                logger.error({
+            } catch (err: unknown) {
+                const processingTimeMs = Date.now() - requestStart;
+                error({
                     processingTimeMs,
-                    err: error,
+                    err: formatError(err),
                     stampings
                 }, 'Error processing request');
                 response.writeHead(500, { 'Content-Type': 'application/json' });
@@ -88,9 +111,9 @@ Chunk.hashFunction = (data: Uint8Array): Uint8Array => {
             }
         })
         
-        request.on('error', (error) => {
-            logger.error({
-                err: error,
+        request.on('error', (err: Error) => {
+            error({
+                err: formatError(err),
                 processingTimeMs: Date.now() - requestStart
             }, 'Request error');
             response.writeHead(400, { 'Content-Type': 'application/json' });
@@ -99,19 +122,17 @@ Chunk.hashFunction = (data: Uint8Array): Uint8Array => {
     })
     
     server.listen(port, () => {
-        logger.info({
+        log({
             port,
             target,
-            batchId: batchIdString,
             startupTime: new Date(Date.now()).toISOString()  
         }, 'Server started successfully')
     })
     
-    server.on('error', (error) => {
-        logger.error({ err: error }, 'Server error');
-        process.exit(1);
+    server.on('error', (err: Error) => {
+        error({ err: formatError(err) }, 'Server error');
     })
-})().catch(error => {
-    logger.error({ err: error }, 'Application error');
+})().catch((err: unknown) => {
+    error({ err: formatError(err) }, 'Application error');
     process.exit(1);
 });
