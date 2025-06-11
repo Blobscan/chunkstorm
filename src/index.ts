@@ -7,27 +7,12 @@ import { Stamper } from './stamper'
 import { getConfig } from './config'
 import { log, error } from './logger'
 
-function formatError(err: unknown): string {
-    if (err instanceof Error) {
-        return err.stack || err.message;
-    }
-    if (typeof err === 'object') {
-        try {
-            return JSON.stringify(err);
-        } catch {
-            return String(err);
-        }
-    }
-    return String(err);
-}
-
-
 process.on('uncaughtException', (err: unknown) => {
-    error({ err: formatError(err) }, 'Uncaught Exception');
+    error({ err }, 'Uncaught Exception');
 });
 
 process.on('unhandledRejection', (reason: unknown) => {
-    error({ err: formatError(reason) }, 'Unhandled Rejection');
+    error({ err: reason }, 'Unhandled Rejection');
 });
 
 Chunk.hashFunction = (data: Uint8Array): Uint8Array => {
@@ -103,7 +88,7 @@ Chunk.hashFunction = (data: Uint8Array): Uint8Array => {
                 const processingTimeMs = Date.now() - requestStart;
                 error({
                     processingTimeMs,
-                    err: formatError(err),
+                    err,
                     stampings
                 }, 'Error processing request');
                 response.writeHead(500, { 'Content-Type': 'application/json' });
@@ -113,7 +98,7 @@ Chunk.hashFunction = (data: Uint8Array): Uint8Array => {
         
         request.on('error', (err: Error) => {
             error({
-                err: formatError(err),
+                err,
                 processingTimeMs: Date.now() - requestStart
             }, 'Request error');
             response.writeHead(400, { 'Content-Type': 'application/json' });
@@ -130,9 +115,9 @@ Chunk.hashFunction = (data: Uint8Array): Uint8Array => {
     })
     
     server.on('error', (err: Error) => {
-        error({ err: formatError(err) }, 'Server error');
+        error({ err }, 'Server error');
     })
 })().catch((err: unknown) => {
-    error({ err: formatError(err) }, 'Application error');
+    error({ err }, 'Application error');
     process.exit(1);
 });

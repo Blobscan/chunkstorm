@@ -27,6 +27,25 @@ export function log(context: any, message: string) {
 }
 
 export function error(context: any, message: string) {
-    const formatted = formatContext(context);
+    let logContext = context;
+    if (context && context.err !== undefined) {
+        logContext = { ...context, err: formatError(context.err) };
+    }
+    const formatted = formatContext(logContext);
     console.error(`\x1b[31m[ERROR] [${getTimestamp()}]\x1b[0m ${message}${formatted ? ' | ' + formatted : ''}`);
 }
+
+function formatError(err: unknown): string {
+    if (err instanceof Error) {
+        return err.stack || err.message;
+    }
+    if (typeof err === 'object') {
+        try {
+            return JSON.stringify(err);
+        } catch {
+            return String(err);
+        }
+    }
+    return String(err);
+}
+
