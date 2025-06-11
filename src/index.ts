@@ -43,29 +43,20 @@ Chunk.hashFunction = (data: Uint8Array): Uint8Array => {
 
         request.on('end', async () => {
             try {
-                const errors: any[] = [];
                 const queue = new AsyncQueue(64, 64)
                 const data = Buffer.concat(chunks)
 
                 const tree = new MerkleTree(async chunk => {
                     await queue.enqueue(async () => {
-                        try {
                             const envelope = stamper.stamp(chunk);
                             await bee.uploadChunk(envelope, chunk.build());
                             stampings++;
-                        } catch (err) {
-                            errors.push(err);
-                        }
                     })
                 })
 
                 await tree.append(data)
                 const reference = await tree.finalize()
                 await queue.drain();
-
-                if (errors.length > 0) {
-                    throw errors[0];
-                }
 
                 const formattedReference = Array.from(reference.hash())
                     .map(byte => byte.toString(16).padStart(2, '0'))
@@ -116,6 +107,7 @@ Chunk.hashFunction = (data: Uint8Array): Uint8Array => {
 
     server.on('error', (err: Error) => {
         error({ err }, 'Server error');
+        process.exit(1);
     })
 })().catch((err: unknown) => {
     error({ err }, 'Application error');
