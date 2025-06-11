@@ -1,5 +1,5 @@
 import dotenv from 'dotenv';
-import { readFileSync } from 'fs';
+import { existsSync, readFileSync } from 'fs';
 import Web3 from 'web3';
 
 dotenv.config();
@@ -24,6 +24,9 @@ export async function getConfig(): Promise<AppConfig> {
   if (privateKeyString) {
     privateKey = BigInt(privateKeyString!);
   } else if (keystorePath && keystorePassword) {
+    if (!existsSync(keystorePath)) {
+      throw new Error(`Keystore file not found or not reachable at path: ${keystorePath}`);
+    }
     const web3 = new Web3();
     const keystore = JSON.parse(readFileSync(keystorePath!, 'utf-8'));
     const account = await web3.eth.accounts.decrypt(keystore, keystorePassword!);
