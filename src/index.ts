@@ -20,13 +20,12 @@ Chunk.hashFunction = (data: Uint8Array): Uint8Array => {
 }
 
 (async () => {
-    const { beeEndpoint, batchId: batchIdString, port, privateKey } = await getConfig();
+    const { beeEndpoint, batchId: batchIdString, port, privateKey, stamperPath } = await getConfig();
     log({ beeEndpoint, port, batchId: batchIdString }, 'Configuration');
     const bee = new Bee(beeEndpoint);
-    const path = `${batchIdString}.bin`;
     const batchId = Binary.hexToUint8Array(batchIdString)
-    const stamper = existsSync(path)
-        ? Stamper.fromState(privateKey, batchId, new Uint32Array(readFileSync(path)))
+    const stamper = existsSync(stamperPath)
+        ? Stamper.fromState(privateKey, batchId, new Uint32Array(readFileSync(stamperPath)))
         : Stamper.fromBlank(privateKey, batchId);
     let stampings = 0;
 
@@ -74,7 +73,7 @@ Chunk.hashFunction = (data: Uint8Array): Uint8Array => {
                     reference: formattedReference,
                 }, 'Request completed successfully');
 
-                writeFileSync(path, stamper.getState())
+                writeFileSync(stamperPath, stamper.getState())
             } catch (err: unknown) {
                 const processingTimeMs = Date.now() - requestStart;
                 error({

@@ -22,6 +22,7 @@ LABEL org.opencontainers.image.description="Simple Node.js server that splits, s
 LABEL org.opencontainers.image.created="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
 
 ENV NODE_ENV=production
+ENV STAMPERSTORE_PATH=/app/stamperstore
 
 WORKDIR /app
 RUN addgroup --system --gid 1001 nodejs && \

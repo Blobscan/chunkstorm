@@ -9,6 +9,7 @@ export interface AppConfig {
   port: number;
   batchId: string;
   privateKey: bigint;
+  stamperPath: string;
 }
 
 async function getPrivateKey(): Promise<bigint> {
@@ -37,12 +38,14 @@ export async function getConfig(): Promise<AppConfig> {
   }
 
   const privateKey = await getPrivateKey();
-
+  const stamperStorePath = process.env.STAMPERSTORE_PATH || '.';
+  const stamperPath = `${stamperStorePath}/${process.env.BATCH_ID}.bin`;
   const config: AppConfig = {
     beeEndpoint: process.env.BEE_ENDPOINT || 'http://localhost:1633',
     port: Number(process.env.PORT) || 3050,
     batchId: process.env.BATCH_ID,
-    privateKey
+    privateKey,
+    stamperPath
   };
 
   return config;
