@@ -1,11 +1,12 @@
 import { Bee } from '@ethersphere/bee-js'
 import { AsyncQueue, Binary, Chunk, MerkleTree } from 'cafe-utility'
 import { existsSync, readFileSync, writeFileSync } from 'fs'
-import { createServer, Server } from 'http'
+import { createServer, IncomingMessage, Server, ServerResponse } from 'http'
 import createKeccakHash from 'keccak'
 import { Stamper } from './stamper'
 import { getConfig } from './config'
 import { log, error } from './logger'
+import { register, httpRequestsTotal, httpRequestDuration, chunksUploaded, currentStampingBuckets } from './metrics'
 
 process.on('uncaughtException', (err: unknown) => {
     error({ err }, 'Uncaught Exception');
@@ -29,14 +30,34 @@ Chunk.hashFunction = (data: Uint8Array): Uint8Array => {
         : Stamper.fromBlank(privateKey, batchId);
     let stampings = 0;
 
-    const server: Server = createServer((request, response) => {
+    // Initialize metrics with current stamper state
+    currentStampingBuckets.set(stamper.getBucketsInUse());
+
+    const server: Server = createServer((request: IncomingMessage, response: ServerResponse) => {
         const requestStart = Date.now()
         const chunks: Buffer[] = []
+        const requestTimer = httpRequestDuration.startTimer()
 
         log({
             method: request.method,
             url: request.url,
         }, 'Incoming request');
+
+        // Handle metrics endpoint
+        if (request.url === '/metrics' && request.method === 'GET') {
+            response.writeHead(200, { 'Content-Type': register.contentType });
+            response.end(register.metrics());
+            httpRequestsTotal.inc({ method: 'GET', status: 200 });
+            return;
+        }
+
+        // Handle health check endpoint
+        if (request.url === '/health' && request.method === 'GET') {
+            response.writeHead(200, { 'Content-Type': 'application/json' });
+            response.end(JSON.stringify({ status: 'ok' }));
+            httpRequestsTotal.inc({ method: 'GET', status: 200 });
+            return;
+        }
 
         request.on('data', chunk => chunks.push(chunk))
 
@@ -50,6 +71,8 @@ Chunk.hashFunction = (data: Uint8Array): Uint8Array => {
                             const envelope = stamper.stamp(chunk);
                             await bee.uploadChunk(envelope, chunk.build());
                             stampings++;
+                            chunksUploaded.inc();
+                            currentStampingBuckets.set(stamper.getBucketsInUse());
                     })
                 })
 
@@ -65,6 +88,10 @@ Chunk.hashFunction = (data: Uint8Array): Uint8Array => {
                 response.end(JSON.stringify({
                     reference: formattedReference,
                 }));
+
+                // Record metrics
+                httpRequestsTotal.inc({ method: request.method || 'UNKNOWN', status: 200 });
+                requestTimer();
 
                 const processingTimeMs = Date.now() - requestStart
                 log({
@@ -83,6 +110,10 @@ Chunk.hashFunction = (data: Uint8Array): Uint8Array => {
                 }, 'Error processing request');
                 response.writeHead(500, { 'Content-Type': 'application/json' });
                 response.end(JSON.stringify({ error: 'Internal server error' }));
+
+                // Record metrics
+                httpRequestsTotal.inc({ method: request.method || 'UNKNOWN', status: 500 });
+                requestTimer();
             }
         })
 
@@ -93,6 +124,10 @@ Chunk.hashFunction = (data: Uint8Array): Uint8Array => {
             }, 'Request error');
             response.writeHead(400, { 'Content-Type': 'application/json' });
             response.end(JSON.stringify({ error: 'Bad request' }));
+
+            // Record metrics
+            httpRequestsTotal.inc({ method: request.method || 'UNKNOWN', status: 400 });
+            requestTimer();
         })
     })
 

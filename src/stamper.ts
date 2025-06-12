@@ -44,4 +44,8 @@ export class Stamper {
     getState(): Uint32Array {
         return this.buckets
     }
+
+    getBucketsInUse(): number {
+        return this.buckets.reduce((count, value) => count + (value > 0 ? 1 : 0), 0)
+    }
 }
