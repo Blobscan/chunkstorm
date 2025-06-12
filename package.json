@@ -3,7 +3,9 @@
     "version": "1.0.0",
     "main": "index.js",
     "scripts": {
-        "build": "tsc"
+        "build": "tsc",
+        "lint": "eslint --ext .ts src/",
+        "lint:fix": "eslint --ext .ts src/ --fix"
     },
     "keywords": [],
     "author": "",
@@ -19,6 +21,9 @@
     "devDependencies": {
         "@types/keccak": "^3.0.5",
         "@types/node": "^22.13.10",
+        "@typescript-eslint/eslint-plugin": "^7.3.1",
+        "@typescript-eslint/parser": "^7.3.1",
+        "eslint": "^8.57.0",
         "typescript": "^5.8.2"
     }
 }
