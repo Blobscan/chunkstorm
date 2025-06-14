@@ -9,7 +9,7 @@ async function main() {
     }
     for (let i = 0; i < 45; i++) {
         const data = readFileSync(`random${i}.bin`)
-        const response = await fetch('http://localhost:3000/data', {
+        const response = await fetch('http://localhost:3050/data', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/octet-stream'
