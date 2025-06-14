@@ -8,8 +8,9 @@ export interface AppConfig {
   beeEndpoint: string;
   port: number;
   batchId: string;
-  privateKey: bigint;
+  depth: number;
   stamperPath: string;
+  privateKey: bigint;
 }
 
 async function getPrivateKey(): Promise<bigint> {
@@ -44,8 +45,9 @@ export async function getConfig(): Promise<AppConfig> {
     beeEndpoint: process.env.BEE_ENDPOINT || 'http://localhost:1633',
     port: Number(process.env.PORT) || 3050,
     batchId: process.env.BATCH_ID,
-    privateKey,
-    stamperPath
+    depth: Number(process.env.DEPTH) || 17,
+    stamperPath,
+    privateKey
   };
 
   return config;
