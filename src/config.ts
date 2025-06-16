@@ -8,7 +8,6 @@ export interface AppConfig {
   beeEndpoint: string;
   port: number;
   batchId: string;
-  depth: number;
   stamperPath: string;
   privateKey: bigint;
 }
@@ -45,7 +44,6 @@ export async function getConfig(): Promise<AppConfig> {
     beeEndpoint: process.env.BEE_ENDPOINT || 'http://localhost:1633',
     port: Number(process.env.PORT) || 3050,
     batchId: process.env.BATCH_ID,
-    depth: Number(process.env.DEPTH) || 17,
     stamperPath,
     privateKey
   };

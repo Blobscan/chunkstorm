@@ -33,7 +33,7 @@ export class Stamper {
         const height = this.buckets[bucket]
 
         if (height >= this.maxSlot) {
-            throw Error(`Bucket ${bucket} is out of free slots (max slots = ${this.maxSlot})`)
+            throw Error(`Batch is full: ${this.batchId}`)
         }
 
         this.buckets[bucket]++
