@@ -1,4 +1,4 @@
-import { Bee } from '@ethersphere/bee-js'
+import { Bee, GlobalPostageBatch } from '@ethersphere/bee-js'
 import { AsyncQueue, Binary, Chunk, MerkleTree } from 'cafe-utility'
 import { existsSync, readFileSync, writeFileSync } from 'fs'
 import { createServer, Server } from 'http'
@@ -23,8 +23,15 @@ Chunk.hashFunction = (data: Uint8Array): Uint8Array => {
     const { beeEndpoint, batchId: batchIdString, port, privateKey, stamperPath } = await getConfig();
     log({ beeEndpoint, port, batchId: batchIdString }, 'Configuration');
     const bee = new Bee(beeEndpoint);
-    const { depth } = await bee.getTopology()
+
     const batchId = Binary.hexToUint8Array(batchIdString)
+    const batches = await bee.getAllGlobalPostageBatch();
+    const batch = batches.find((batch: GlobalPostageBatch) => batch.batchID.equals(batchId));
+    if (!batch) {
+        throw new Error(`No batch found with ID ${batchIdString}`);
+    }
+    const { depth } = batch;
+
     const stamper = existsSync(stamperPath)
         ? Stamper.fromState(privateKey, batchId, new Uint32Array(readFileSync(stamperPath)), depth)
         : Stamper.fromBlank(privateKey, batchId, depth);
