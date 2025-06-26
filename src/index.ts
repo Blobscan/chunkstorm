@@ -45,6 +45,12 @@ Chunk.hashFunction = (data: Uint8Array): Uint8Array => {
             method: request.method,
             url: request.url,
         }, 'Incoming request');
+        
+        if (request.url !== '/upload' || request.method !== 'POST') {
+            response.writeHead(404, { 'Content-Type': 'application/json' });
+            response.end(JSON.stringify({ error: 'Not found' }));
+            return;
+        }
 
         request.on('data', chunk => chunks.push(chunk))
 
