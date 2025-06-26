@@ -30,11 +30,11 @@ Chunk.hashFunction = (data: Uint8Array): Uint8Array => {
     if (!batch) {
         throw new Error(`No batch found with ID ${batchIdString}`);
     }
-    const { depth } = batch;
+    const { depth, immutable } = batch;
 
     const stamper = existsSync(stamperPath)
-        ? Stamper.fromState(privateKey, batchId, new Uint32Array(readFileSync(stamperPath)), depth)
-        : Stamper.fromBlank(privateKey, batchId, depth);
+        ? Stamper.fromState(privateKey, batchId, new Uint32Array(readFileSync(stamperPath)), depth, immutable)
+        : Stamper.fromBlank(privateKey, batchId, depth, immutable);
     let stampings = 0;
 
     const server: Server = createServer((request, response) => {
