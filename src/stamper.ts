@@ -21,12 +21,12 @@ export class Stamper {
         this.address = Elliptic.publicKeyToAddress(publicKey)
     }
 
-    static fromBlank(signer: bigint, batchId: Uint8Array, depth: number) {
-        return new Stamper(signer, batchId, new Uint32Array(65536), depth)
+    static fromBlank(signer: bigint, batchId: Uint8Array, depth: number, immutable: boolean) {
+        return new Stamper(signer, batchId, new Uint32Array(65536), depth, immutable)
     }
 
-    static fromState(signer: bigint, batchId: Uint8Array, buckets: Uint32Array, depth: number) {
-        return new Stamper(signer, batchId, buckets, depth)
+    static fromState(signer: bigint, batchId: Uint8Array, buckets: Uint32Array, depth: number, immutable: boolean) {
+        return new Stamper(signer, batchId, buckets, depth, immutable)
     }
 
     stamp(chunk: Chunk) {
