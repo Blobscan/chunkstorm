@@ -61,9 +61,14 @@ Chunk.hashFunction = (data: Uint8Array): Uint8Array => {
 
                 const tree = new MerkleTree(async chunk => {
                     await queue.enqueue(async () => {
+                        try {
                             const envelope = stamper.stamp(chunk);
                             await bee.uploadChunk(envelope, chunk.build());
                             stampings++;
+                        } catch (err) {
+                            error({ err }, 'Failed to upload chunk');
+                            throw err; // Re-throw to make sure the queue knows this task failed
+                        }
                     })
                 })
 
