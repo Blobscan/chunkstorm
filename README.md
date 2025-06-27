@@ -6,6 +6,10 @@ Run `npm install`.
 
 Run `npm run build`.
 
+### Docker images
+
+https://hub.docker.com/r/blossomlabs/chunkstorm/
+
 ## Environment Variables Configuration
 
 Create a `.env` file in the project root directory based on `.env.example`.
