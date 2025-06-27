@@ -3,9 +3,14 @@ import { AsyncQueue, Binary, Chunk, MerkleTree } from 'cafe-utility'
 import { existsSync, readFileSync, writeFileSync } from 'fs'
 import { createServer, Server } from 'http'
 import createKeccakHash from 'keccak'
+import { randomBytes } from 'crypto'
 import { Stamper } from './stamper'
 import { getConfig } from './config'
 import { log, error } from './logger'
+
+function generateRequestId(): string {
+    return randomBytes(8).toString('hex')
+}
 
 process.on('uncaughtException', (err: unknown) => {
     error({ err }, 'Uncaught Exception');
@@ -39,9 +44,11 @@ Chunk.hashFunction = (data: Uint8Array): Uint8Array => {
 
     const server: Server = createServer((request, response) => {
         const requestStart = Date.now()
+        const requestId = generateRequestId()
         const chunks: Buffer[] = []
 
         log({
+            requestId,
             method: request.method,
             url: request.url,
         }, 'Incoming request');
@@ -66,7 +73,7 @@ Chunk.hashFunction = (data: Uint8Array): Uint8Array => {
                             await bee.uploadChunk(envelope, chunk.build());
                             stampings++;
                         } catch (err) {
-                            error({ err }, 'Failed to upload chunk');
+                            error({ requestId, err }, 'Failed to upload chunk');
                             throw err; // Re-throw to make sure the queue knows this task failed
                         }
                     })
@@ -87,6 +94,7 @@ Chunk.hashFunction = (data: Uint8Array): Uint8Array => {
 
                 const processingTimeMs = Date.now() - requestStart
                 log({
+                    requestId,
                     processingTimeMs,
                     stampings,
                     reference: formattedReference,
@@ -96,6 +104,7 @@ Chunk.hashFunction = (data: Uint8Array): Uint8Array => {
             } catch (err: unknown) {
                 const processingTimeMs = Date.now() - requestStart;
                 error({
+                    requestId,
                     processingTimeMs,
                     err,
                     stampings
@@ -107,6 +116,7 @@ Chunk.hashFunction = (data: Uint8Array): Uint8Array => {
 
         request.on('error', (err: Error) => {
             error({
+                requestId,
                 err,
                 processingTimeMs: Date.now() - requestStart
             }, 'Request error');
